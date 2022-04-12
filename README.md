@@ -15,7 +15,7 @@ Il software utile è:
                   per poter ispezionare un video fotoframma dopo fotogramma (nel caso di riprese veloci);
 
 2) timing.py:     per fototrappole, rinomina i file video di una cartella con data e ora dell'ultima modifica,
-                  chiedendo inoltre informazioni sulla fototrappola da cui derivano i video;
+                  chiedendo inoltre informazioni sulla fototrappola da cui derivano i video per una più semplice gestione dei database;
 
 3) extSort.py:    legge il contenuto di una directory ricorsivamente e separa i file al suo interno
                   per estensione, salvandoli in sottocartelle rinominate con l'estensione dei file;
@@ -25,10 +25,6 @@ Il software utile è:
 
 5) fotoScan.py:   analizza una foto con la stessa rete neurale di 'videoScan.py' applicando gli stessi mosaici;
                   restituisce in output i label più probabili per ogni crop del mosaico su tutte le uscite della rete;
-                
-6) NasNetLarge:   file di backup che contiene la rete neurale con relativi pesi usati in 'fotoScan.py' e 'fotoScan.py';
-                  non sarà necessaria per il corretto funzionamento dei software, ma può essere implementata facilmente
-                  in caso di necessità nei sorgenti che la richiedono in assenza di una connessione internet.
 
 
 # Uso:
