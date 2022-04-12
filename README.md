@@ -4,7 +4,7 @@ Software basati su metodi di intelligenza artificiale per i monitoraggi della fa
 # Installazione e setup:
 Per installare tutto il necessario:
 1) assicurarsi di avere una connessione internet
-2) installare l'interprete python (versione 3.10);
+2) installare l'interprete Python (versione >= 3.8.10);
 3) conclusa l'installazione, eseguire lo script 'installaLib.py' per installare tutte le librerie e moduli necessari;
 
 
