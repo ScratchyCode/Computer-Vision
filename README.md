@@ -1,5 +1,5 @@
 # Descrizione
-Software basati su metodi di intelligenza artificiale per i monitoraggi faunistici della fauna selvatica, sviluppati per il Parco Regionale dei Monti Lucretili.
+Software basati su metodi di intelligenza artificiale per i monitoraggi della fauna selvatica, sviluppati per il Parco Naturale Regionale dei Monti Lucretili.
 
 # Installazione e setup:
 Per installare tutto il necessario:
