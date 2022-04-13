@@ -8,7 +8,6 @@ import statistics
 
 print("******************************************")
 print("*                                        *")
-print("*            Servizio Civile             *")
 print("*     Progetto Monitoraggi Faunisti      *")
 print("*    Monti Lucretili, anno 2021/2022     *")
 print("*            (Versione BETA)             *")
