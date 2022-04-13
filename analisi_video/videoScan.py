@@ -1,8 +1,14 @@
-# Coded by Pietro Squilla
+"        Coded by Pietro Squilla        "
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # da scegliere tra {'0', '1', '2'}
 import cv2
 import numpy as np
+#import shutil
+#import statistics
+#from PIL import Image
+#from threading import Thread
+#from keras.preprocessing.image import load_img
+#from keras.preprocessing.image import img_to_array
 from keras.applications.nasnet import preprocess_input
 from keras.applications.nasnet import decode_predictions
 from keras.applications.nasnet import NASNetLarge
@@ -35,10 +41,7 @@ def informazioni():
     print("Il primo settaggio è stato programmato perchè l'elaborazione di ogni frame impiega:")
     print("circa 350ms se si sfrutta solo la CPU (caso di computer senza scheda video dedicata);")
     print("circa 20 ms se si sfrutta la GPU di una scheda video dedicata.")
-    print("Lo skip dei frame in questo caso consente di ridurre i tempi di elaborazione.")
-    print("Inoltre il software è stato testato con la mosaicizzazione su frame 1920x1080.")
-    print("Potenzialmente non ci sono problemi ad estendere l'uso su qualsiasi risoluzione,")
-    print("ma all'attuale versione non è stata testata come funzionalità, inibendone quindi l'uso.\n")
+    print("Lo skip dei frame in questo caso consente di ridurre i tempi di elaborazione.\n")
 
     print("Il secondo punto è stato programmato perchè i riscontri avvengono su base probabilistica.")
     print("Una confidenza alta (>70%) consente di essere sicuri della fauna classificata,")
@@ -47,8 +50,8 @@ def informazioni():
     print("come per esempio per i video sgranati, notturni o che presentano fauna defilata.")
     print("Una confidenza bassa (<50%) porterà dei riscontri che risultano essere falsi positivi,")
     print("cioè tenderà a classificare i video vuoti come se riprendessero della fauna.")
-    print("Questo perchè la rete neurale è affetta (come gli umani) al noto effetto per cui")
-    print("'l'occhio vede ciò che vuole vedere', a causa degli strati convoluzionali della ANN.\n")
+    print("Questo perchè la rete neurale è affetta (come gli umani) all'effetto della pareidolia,")
+    print("cioè 'l'occhio vede ciò che vuole vedere' a causa degli strati convoluzionali della rete.\n")
 
     print("Il terzo settaggio è stato programmato per dare la possibilità all'utente")
     print("di decidere che mosaicizzazione creare di ogni frame, in base all'inquadratura del video.")
@@ -469,146 +472,147 @@ def analisiFrame(model,img,confidenza,mosaico,frameSize):
 ##############
 #    main    #
 ##############
-if(__name__ == "__main__"):
-    print("********************************************")
-    print("*                                          *")
-    print("*              SCANNER VIDEO               *")
-    print("*  A RETE NEURALE CONVOLUZIONALE PROFONDA  *")
-    print("*               NasNetLarge                *")
-    print("*                                          *")
-    print("*      Progetto Monitoraggi Faunisti       *")
-    print("* Parco Naturale Regionale Monti Lucretili *")
-    print("*             Anno 2021/2022               *")
-    print("*                                          *")
-    print("********************************************")
-    
-    menu = input("Premi 'c' per continuare, 'h' per maggiori info, 'x' per uscire: ")
-    if(menu == 'c' or menu == 'C'):
-        pass
-    elif(menu == 'h' or menu == 'H'):
-        informazioni()
-    else:
-        quit()
-    
-    # dati generali
-    dirname = input("Nome cartella video: ")
-    
-    skip = int(input("Inserisci il numero di frame da skippare: "))
-    while(skip <= 0):
-        print("Il valore dello skip deve essere maggiore di 0!")
-        skip = int(input("Inserisci il numero di frame da skippare: "))
-    
-    confidenza = float(input("Inserisci la confidenza percentuale: "))
-    while(confidenza <= 0.0 or confidenza >=100.0):
-        print("La confidenza deve essere compresa tra 0% e 100%")
-        confidenza = float(input("Inserisci la confidenza percentuale: "))
-    
-    # matrice mosaico sui frame
-    print("Scegli la tipologia di mosaico da applicare:")
-    print("     8 riquadri -> (primo piano)")
-    print("    18 riquadri -> (animali lontani)")
-    print("    32 riquadri -> (animali piccoli)")
-    #print("4) 144 crop -> (sperimentale)")
-    
-    numMosaico = int(input("Numero riquadri: "))
-    if(numMosaico == 8):
-        mosaico = (4,2)
-    elif(numMosaico == 18):
-        mosaico = (6,3)
-    elif(numMosaico == 32):
-        mosaico = (8,4)
-    elif(numMosaico == 144):
-        mosaico = (16,9)
-    else:
-        print("\n*** Errore! ***")
-        print("Numero di riquadri non supportata.")
-        print("Uscita...")
-        quit()
-        
-    
-    # lista dei video nella cartella
-    listavideo = os.listdir(dirname + '/')
-    listavideo.sort()
-    numerovideo = len(listavideo)
-    
-    # cambio la dir operativa per consentire di trovare i file successivamente
-    os.chdir(dirname + '/')
-    
-    # carico la rete neurale in memoria
-    print("Caricamento rete neurale...\n",flush=True)
-    ann = NASNetLarge(weights='imagenet')
-    
-    # analizzo i video uno dopo l'altro
-    for i in range(numerovideo):
-        
-        # escludo eventuali directory dalla lista dei video presenti
-        if(os.path.exists(listavideo[i]) and os.path.isdir(listavideo[i])):
-            print("*** Escludo '%s': è una directory.\n" %(listavideo[i]))
-            continue
-        
-        # escludo qualsisi altro file che non sia un video
-        ext = os.path.splitext(listavideo[i])[1][1:]
-        if(ext != "avi" and ext != "AVI" and ext != "mov" and ext != "MOV" and ext != "mp4" and ext != "MP4"):
-            print("*** Escludo '%s': non è un video.\n" %(listavideo[i]))
-            continue
-        
-        print("Analisi video '%s'..." %(listavideo[i]),flush=True)
-        
-        # apro il video e controllo che abbia una risoluzione di 1920x1080 per il mosaico successivo
-        vidcap = cv2.VideoCapture(listavideo[i])
-        if(vidcap.isOpened()):
-            fps = vidcap.get(cv2.CAP_PROP_FPS)
-            width  = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            numframe = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
-            frameSize = (width,height)
-            
-            if(width != 1920 or height != 1080):
-                print("\n*** Errore! ***")
-                print("Risoluzione video richiesta: 1920x1080")
-                print("Il video aperto invece è: %dx%d\n" %(width,height))
-                #print("Uscita...")
-                #quit()
-                continue
-        else:
-            print("*** Errore nell'apertura dei file! ***\n")
-            continue
-        
-        # inizializzo l'elaborazione
-        success = True
-        count = 0
-        
-        # elaborazione
-        try:
-            while success:
-                count += 1
-                # non viene usato un for con cv2.CAP_PROP_FRAME_COUNT per controllare gli errori sui video
-                success,frame = vidcap.read()
-                
-                if(success != True):
-                    break
-                
-                if(count % skip == 0):
-                    print(" Frame %d..." %count)
-                    
-                    fauna = analisiFrame(ann,frame,confidenza,mosaico,frameSize)
-                    
-                    if(fauna != 0):
-                        vidcap.release()
-                        print("Salvataggio...\n",flush=True)
-                        # rinomino il video con le informazioni estratte
-                        nomeVecchio = listavideo[i]
-                        os.rename(nomeVecchio,"RISCONTRO" + ' ' + nomeVecchio)
-                        #os.replace(nomeVecchio,"RISCONTRO" + ' ' + nomeVecchio)
-                        break
-                    else:
-                        continue
-                else:
-                    continue
-        
-        except:
-            break
-    
-    input("Premi INVIO per continuare...")
+print("********************************************")
+print("*                                          *")
+print("*              SCANNER VIDEO               *")
+print("*  A RETE NEURALE CONVOLUZIONALE PROFONDA  *")
+print("*               NasNetLarge                *")
+print("*                                          *")
+print("*      Progetto Monitoraggi Faunisti       *")
+print("* Parco Naturale Regionale Monti Lucretili *")
+print("*             Anno 2021/2022               *")
+print("*                                          *")
+print("*         Coded by Pietro Squilla          *")
+print("*      pietro.squilla@protonmail.com       *")
+print("*                                          *")
+print("********************************************")
+
+menu = input("Premi 'c' per continuare, 'h' per maggiori info, 'x' per uscire: ")
+if(menu == 'c' or menu == 'C'):
+    pass
+elif(menu == 'h' or menu == 'H'):
+    informazioni()
+else:
     quit()
 
+# dati generali
+dirname = input("Nome cartella video: ")
+
+skip = int(input("Inserisci il numero di frame da skippare: "))
+while(skip <= 0):
+    print("Il valore dello skip deve essere maggiore di 0!")
+    skip = int(input("Inserisci il numero di frame da skippare: "))
+
+confidenza = float(input("Inserisci la confidenza percentuale: "))
+while(confidenza <= 0.0 or confidenza >=100.0):
+    print("La confidenza deve essere compresa tra 0% e 100%")
+    confidenza = float(input("Inserisci la confidenza percentuale: "))
+
+# matrice mosaico sui frame
+print("Scegli la tipologia di mosaico da applicare:")
+print("     8 riquadri -> (primo piano)")
+print("    18 riquadri -> (animali lontani)")
+print("    32 riquadri -> (animali piccoli)")
+#print("4) 144 crop -> (sperimentale)")
+
+numMosaico = int(input("Numero riquadri: "))
+if(numMosaico == 8):
+    mosaico = (4,2)
+elif(numMosaico == 18):
+    mosaico = (6,3)
+elif(numMosaico == 32):
+    mosaico = (8,4)
+elif(numMosaico == 144):
+    mosaico = (16,9)
+else:
+    print("\n*** Errore! ***")
+    print("Numero di riquadri non supportata.")
+    print("Uscita...")
+    quit()
+    
+
+# lista dei video nella cartella
+listavideo = os.listdir(dirname + '/')
+listavideo.sort()
+numerovideo = len(listavideo)
+
+# cambio la dir operativa per consentire di trovare i file successivamente
+os.chdir(dirname + '/')
+
+# carico la rete neurale in memoria
+print("Caricamento rete neurale...\n",flush=True)
+ann = NASNetLarge(weights='imagenet')
+
+# analizzo i video uno dopo l'altro
+for i in range(numerovideo):
+    
+    # escludo eventuali directory dalla lista dei video presenti
+    if(os.path.exists(listavideo[i]) and os.path.isdir(listavideo[i])):
+        print("*** Escludo '%s': è una directory.\n" %(listavideo[i]))
+        continue
+    
+    # escludo qualsisi altro file che non sia un video
+    ext = os.path.splitext(listavideo[i])[1][1:]
+    if(ext != "avi" and ext != "AVI" and ext != "mov" and ext != "MOV" and ext != "mp4" and ext != "MP4"):
+        print("*** Escludo '%s': non è un video.\n" %(listavideo[i]))
+        continue
+    
+    print("Analisi video '%s'..." %(listavideo[i]),flush=True)
+    
+    # apro il video e controllo che abbia una risoluzione di 1920x1080 per il mosaico successivo
+    vidcap = cv2.VideoCapture(listavideo[i])
+    if(vidcap.isOpened()):
+        fps = vidcap.get(cv2.CAP_PROP_FPS)
+        width  = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        numframe = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+        frameSize = (width,height)
+        
+        if(width != 1920 or height != 1080):
+            print("\n*** Errore! ***")
+            print("Risoluzione video richiesta: 1920x1080")
+            print("Il video aperto invece è: %dx%d\n" %(width,height))
+            #print("Uscita...")
+            #quit()
+            continue
+    else:
+        print("*** Errore nell'apertura dei file! ***\n")
+        continue
+    
+    # inizializzo l'elaborazione
+    success = True
+    count = 0
+    
+    # elaborazione
+    try:
+        while success:
+            count += 1
+            # non viene usato un for con cv2.CAP_PROP_FRAME_COUNT per controllare gli errori sui video
+            success,frame = vidcap.read()
+            
+            if(success != True):
+                break
+            
+            if(count % skip == 0):
+                print(" Frame %d..." %count)
+                
+                fauna = analisiFrame(ann,frame,confidenza,mosaico,frameSize)
+                
+                if(fauna != 0):
+                    vidcap.release()
+                    print("Salvataggio...\n",flush=True)
+                    # rinomino il video con le informazioni estratte
+                    nomeVecchio = listavideo[i]
+                    os.rename(nomeVecchio,"RISCONTRO" + ' ' + nomeVecchio)
+                    #os.replace(nomeVecchio,"RISCONTRO" + ' ' + nomeVecchio)
+                    break
+                else:
+                    continue
+            else:
+                continue
+    
+    except:
+        break
+
+input("Premi INVIO per continuare...")
+quit()
