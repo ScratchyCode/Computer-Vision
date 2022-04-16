@@ -1,4 +1,5 @@
 # Coded by Pietro Squilla
+# per Windows
 import os
 import platform
 import time
