@@ -11,8 +11,6 @@ print("*                                          *")
 print("*      Progetto Monitoraggi Faunisti       *")
 print("* Parco Naturale Regionale Monti Lucretili *")
 print("*             Anno 2021/2022               *")
-print("*         Coded by Pietro Squilla          *")
-print("*      pietro.squilla@protonmail.com       *")
 print("*                                          *")
 print("********************************************")
 
