@@ -3,6 +3,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # da scegliere tra {'0', '1', '2'}
 import cv2
 import numpy as np
+import signal
 #import shutil
 #import statistics
 #from PIL import Image
@@ -469,9 +470,17 @@ def analisiFrame(model,img,confidenza,mosaico,frameSize):
     
     return contatore
 
+def signal_handler(signal,frame):
+    print("\nExit...")
+    sys.exit(0)
+
 ##############
 #    main    #
 ##############
+
+# gestisco il segnale di chiusura
+signal.signal(signal.SIGINT,signal_handler)
+
 print("********************************************")
 print("*                                          *")
 print("*              SCANNER VIDEO               *")
@@ -543,12 +552,12 @@ ann = NASNetLarge(weights='imagenet')
 # analizzo i video uno dopo l'altro
 for i in range(numerovideo):
     
-    # escludo eventuali directory dalla lista dei video presenti
+    # escludo eventuali directory dalla lista dei file presenti
     if(os.path.exists(listavideo[i]) and os.path.isdir(listavideo[i])):
         print("*** Escludo '%s': è una directory.\n" %(listavideo[i]))
         continue
     
-    # escludo qualsisi altro file che non sia un video
+    # escludo qualsisi altro file che non sia un video supportato
     ext = os.path.splitext(listavideo[i])[1][1:]
     if(ext != "avi" and ext != "AVI" and ext != "mov" and ext != "MOV" and ext != "mp4" and ext != "MP4"):
         print("*** Escludo '%s': non è un video.\n" %(listavideo[i]))
@@ -556,8 +565,9 @@ for i in range(numerovideo):
     
     print("Analisi video '%s'..." %(listavideo[i]),flush=True)
     
-    # apro il video e controllo che abbia una risoluzione di 1920x1080 per il mosaico successivo
+    # apro il video e controllo che abbia una risoluzione di 1920x1080 per la mosaicizzazione
     vidcap = cv2.VideoCapture(listavideo[i])
+    
     if(vidcap.isOpened()):
         fps = vidcap.get(cv2.CAP_PROP_FPS)
         width  = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -569,8 +579,6 @@ for i in range(numerovideo):
             print("\n*** Errore! ***")
             print("Risoluzione video richiesta: 1920x1080")
             print("Il video aperto invece è: %dx%d\n" %(width,height))
-            #print("Uscita...")
-            #quit()
             continue
     else:
         print("*** Errore nell'apertura dei file! ***\n")
@@ -584,31 +592,52 @@ for i in range(numerovideo):
     try:
         while success:
             count += 1
-            # non viene usato un for con cv2.CAP_PROP_FRAME_COUNT per controllare gli errori sui video
+            
+            # lettura frame video
             success,frame = vidcap.read()
             
+            # controllo fine video
             if(success != True):
+                # libero la memoria
+                vidcap.release()
+                frame = None
+                del frame
                 break
             
             if(count % skip == 0):
                 print(" Frame %d..." %count)
                 
+                # analisi
                 fauna = analisiFrame(ann,frame,confidenza,mosaico,frameSize)
                 
                 if(fauna != 0):
+                    # libero la memoria
                     vidcap.release()
+                    frame = None
+                    del frame
+                    
                     print("Salvataggio...\n",flush=True)
                     # rinomino il video con le informazioni estratte
                     nomeVecchio = listavideo[i]
                     os.rename(nomeVecchio,"RISCONTRO" + ' ' + nomeVecchio)
-                    #os.replace(nomeVecchio,"RISCONTRO" + ' ' + nomeVecchio)
                     break
                 else:
+                    # non è stato trovato nulla; libero la memoria
+                    frame = None
+                    del frame
                     continue
             else:
+                # frame da skippare; libero la memoria
+                frame = None
+                del frame
                 continue
-    
+        
+        # DEBUG - libero la memoria
+        vidcap.release()
+        frame = None
+        del frame
     except:
+        print("Interruzione imprevista dell'elaborazione...")
         break
 
 input("Premi INVIO per continuare...")
